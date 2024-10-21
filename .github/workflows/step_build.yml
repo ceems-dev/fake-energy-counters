@@ -1,0 +1,42 @@
+name: build
+run-name: Build
+
+on:
+  workflow_call:
+
+jobs:
+  build:
+    name: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: 1.22.x
+
+      - name: Install promu
+        run: |
+          make promu
+          go mod download
+
+      # Cross compile for only AMD and ARM archs in CI to reduce CI time and artifacts size
+      # We will compile for all supported archs in release workflow
+      - name: Cross compile Go packages
+        run: |
+          promu --config .promu.yml crossbuild -v -p linux/amd64
+
+      - name: Upload go build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-artifacts
+          # Here we add .tarballs to path even if there is no .tarballs. This is to be
+          # consistent with cross-build step so that on download artifact we dont have to
+          # provide path argument.
+          path: |
+            .build
+            .tarballs
+          retention-days: 3
+          include-hidden-files: true

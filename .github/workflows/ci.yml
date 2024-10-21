@@ -1,0 +1,27 @@
+name: CI
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "go.sum"
+      - "go.mod"
+      - "**.go"
+      - ".github/workflows/**"
+      - "!.github/workflows/codeql.yml"
+      - ".golangci.yml"
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  # All nested workflows will inherit these permissions and so no need to declare
+  # in each step file
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    uses: ./.github/workflows/step_build.yml

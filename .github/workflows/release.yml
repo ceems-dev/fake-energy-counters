@@ -1,0 +1,45 @@
+name: Release
+
+on:
+  workflow_dispatch:
+  push:
+    # Run workflow on new tags
+    tags:
+      - 'v*'
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    uses: ./.github/workflows/step_build.yml
+
+  publish:
+    needs: [build]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: 1.22.x
+
+      - name: Install promu
+        run: |
+          make promu
+          go mod download
+
+      - name: Download release artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: build-artifacts
+          path: .tarballs
+      
+      - name: Publish release
+        run: promu release .tarballs
